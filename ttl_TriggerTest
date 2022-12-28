@@ -1,0 +1,63 @@
+from artiq.experiment import *
+
+
+class DrtioDemo(EnvExperiment):
+
+    def build(self):
+        # This device will be used as core in all kernels that do net specify core explicitly 
+        self.setattr_device("core")
+
+        # ttl0-ttl7 are on Master Kasli
+        self.setattr_device("ttl0")
+        self.setattr_device("ttl1")
+        self.setattr_device("ttl2")
+        self.setattr_device("ttl3")
+        # ttl8-ttl15 are on Satellite Kasli
+        self.setattr_device("ttl8")
+        self.setattr_device("ttl10")
+  
+    @kernel
+    def run(self):
+        self.core.break_realtime()
+        self.core.reset()
+        self.ttl0.output()
+        self.ttl1.output()
+        self.ttl2.output()
+        self.ttl3.output()
+        self.ttl8.output()
+        self.ttl10.output()
+        self.core.break_realtime()
+
+        while True:
+            with parallel:
+                self.masterTrigger()
+                self.sateTrigger()
+                delay(10 * us)
+
+
+    @kernel
+    def masterTrigger(self):
+        delay(344 * ns)
+        with parallel:
+            self.ttl0.on()
+            self.ttl1.on()
+            self.ttl2.on()
+            delay(1 * us)
+
+        with parallel:
+            self.ttl0.off()
+            self.ttl1.off()
+            self.ttl2.off()
+            delay(1 * us)
+
+    @kernel
+    def sateTrigger(self):
+        with parallel:
+            self.ttl8.on()
+            self.ttl10.on()
+            delay(1 * us)
+
+        with parallel:
+            self.ttl8.off()
+            self.ttl10.off()
+            delay(1 * us)
